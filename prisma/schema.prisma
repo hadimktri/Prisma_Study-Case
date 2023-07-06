@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" //sqlite
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  //BigInt Int @id @default(autoincrement())
+  id           String @id @default(uuid())
+  name         String
+  age          Int
+  email        String @unique()
+  // isAdmin        Boolean
+  role         Role   @default(BASIC)
+  //preferences  Json Json?
+  // blob           Bytes // Unsupported("")
+  //** Post        Post[]  [] defines one to many or many to many
+  // when refering to the same table multiple time we spacify a title like writtenPosts
+  writtenPosts Post[] @relation("writtenPosts")
+  // when refering to the same table multiple time we spacify a title like favoritPosts
+  favritePosts Post[] @relation("favoritePosts")
+  //using ? to make the field optional
+
+  userPreferece   UserPreference? @relation(fields: [userPrefereceId], references: [id])
+  userPrefereceId String?         @unique
+
+  //User table can not have the fields with the same age and name
+  @@unique([age, name])
+  // creating index for email for sorting and query 
+  @@index([email])
+}
+
+model UserPreference {
+  id           String  @id @default(uuid())
+  emailUpdates Boolean
+  //fields: [userId] userId in current table is referencing with references: [id] to User table
+  user         User?
+}
+
+model Post {
+  id            String     @id @default(uuid())
+  title         String
+  averageRating Float // Decimal
+  createdAt     DateTime   @default(now())
+  // with @updatedAt whenever updatedAt changes this one also will change no need to do it manuly 
+  updatedAt     DateTime   @updatedAt
+  //** User      User     @relation(fields: [userId], references: [id]) 
+  // when refering to the same table multiple time we spacify a title like favoritPosts and writtenPosts
+  author        User       @relation("writtenPosts", fields: [authorId], references: [id])
+  authorId      String
+  favoritedBy   User?      @relation("favoritePosts", fields: [favoritedById], references: [id])
+  favoritedById String?
+  categories    category[]
+
+  // creats composit id with title and author instead of having spesific id which will corresponds with title and authorId
+  // @@id([title, authorId]) 
+}
+
+model category {
+  id    String @id @default(uuid())
+  name  String @unique
+  posts Post[]
+}
+
+//instead of separate isBasic, isAdmin, isEditor make a enum teble and refer to it like role ***   Role   @default(BASIC)   ***
+enum Role {
+  BASIC
+  EDITOR
+  ADMIN
+}
